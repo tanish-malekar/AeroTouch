@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Menu</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>🍽️ Food Menu</h1>
+        <button class="cart-btn" onclick="openCart()">
+            🛒 Cart (<span id="cart-count">0</span>)
+        </button>
+    </header>
+
+    <nav class="category-nav">
+        <button class="category-btn active" onclick="showCategory('burgers')">🍔 Burgers</button>
+        <button class="category-btn" onclick="showCategory('pizzas')">🍕 Pizzas</button>
+        <button class="category-btn" onclick="showCategory('drinks')">🥤 Drinks</button>
+    </nav>
+
+    <main id="menu-container">
+        <!-- Items will be loaded here -->
+    </main>
+
+    <button class="checkout-floating-btn" onclick="openCart()">
+        🛒 Checkout
+    </button>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" class="modal">
+        <div class="modal-content cart-modal-content">
+            <span class="close-btn" onclick="closeCart()">&times;</span>
+            <div class="cart-header">
+                <h2>🛒 Your Cart</h2>
+                <div class="cart-total">
+                    <strong>Total: $<span id="cart-total">0.00</span></strong>
+                </div>
+            </div>
+            <div class="cart-scrollable">
+                <div id="cart-items"></div>
+            </div>
+            <div class="cart-footer">
+                <button class="buy-all-btn" onclick="placeOrder()">Buy All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Confirmation Modal -->
+    <div id="order-modal" class="modal">
+        <div class="modal-content order-confirmation">
+            <span class="close-btn" onclick="closeOrderModal()">&times;</span>
+            <div class="order-success">
+                <h2>✅ Order Placed!</h2>
+                <p>Thank you for your order!</p>
+                <p class="order-number">Order #<span id="order-number"></span></p>
+                <button class="continue-btn" onclick="closeOrderModal()">Continue Shopping</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
