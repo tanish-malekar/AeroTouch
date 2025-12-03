@@ -4,9 +4,9 @@ Controls cursor movement, clicking, and scrolling using hand gestures.
 
 Gestures:
 - Claw-Open (spread fingers): Move cursor
-- Claw-Closed (bunched fingertips): Click
-- Thumbs Up: Scroll up
-- Thumbs Down: Scroll down
+- Closed Fist: Click
+- Point Up (index finger up): Scroll up
+- Point Down (index finger down): Scroll down
 """
 
 import cv2
@@ -188,6 +188,29 @@ def detect_claw_closed(positions):
     return is_bunched and fingers_visible
 
 
+def detect_closed_fist(positions):
+    """
+    Detect closed fist gesture for clicking.
+    All fingers curled/closed with palm facing the camera.
+    """
+    # All fingers should be curled (tips below or at same level as pip - not extended upward)
+    index_curled = positions['index_tip'].y >= positions['index_pip'].y - 0.02
+    middle_curled = positions['middle_tip'].y >= positions['middle_pip'].y - 0.02
+    ring_curled = positions['ring_tip'].y >= positions['ring_pip'].y - 0.02
+    pinky_curled = positions['pinky_tip'].y >= positions['pinky_pip'].y - 0.02
+    
+    # Thumb should also be curled in (close to index finger base)
+    thumb_tip = positions['thumb_tip']
+    index_mcp = positions['index_mcp']
+    thumb_curled = calculate_distance(thumb_tip, index_mcp) < 0.12
+    
+    # Fingertips should be clustered together (tight formation)
+    cluster_radius = calculate_fingertip_cluster_radius(positions)
+    fingers_bunched = cluster_radius < 0.08
+    
+    return index_curled and middle_curled and ring_curled and pinky_curled and fingers_bunched
+
+
 def detect_pinch(positions, threshold=0.05):
     """Detect pinch gesture - thumb and index finger tips touching."""
     distance = calculate_distance(positions['thumb_tip'], positions['index_tip'])
@@ -220,6 +243,124 @@ def detect_thumbs_down(positions):
     pinky_curled = not is_finger_extended(positions['pinky_tip'], positions['pinky_pip'])
     
     return thumb_down and index_curled and middle_curled and ring_curled and pinky_curled
+
+
+def detect_point_up(positions):
+    """
+    Detect pointing up gesture - index finger extended upward, other fingers closed.
+    """
+    # Index finger should be extended (pointing up)
+    index_extended = is_finger_extended(positions['index_tip'], positions['index_pip'])
+    
+    # Index finger tip should be above wrist (pointing upward)
+    index_pointing_up = positions['index_tip'].y < positions['wrist'].y
+    
+    # Other fingers should be curled
+    middle_curled = not is_finger_extended(positions['middle_tip'], positions['middle_pip'])
+    ring_curled = not is_finger_extended(positions['ring_tip'], positions['ring_pip'])
+    pinky_curled = not is_finger_extended(positions['pinky_tip'], positions['pinky_pip'])
+    
+    # Thumb can be in any position (not strict)
+    
+    return index_extended and index_pointing_up and middle_curled and ring_curled and pinky_curled
+
+
+def detect_point_down(positions):
+    """
+    Detect pointing down gesture - index finger extended downward, other fingers closed.
+    Back of hand facing camera.
+    """
+    index_tip = positions['index_tip']
+    index_pip = positions['index_pip']
+    index_mcp = positions['index_mcp']
+    wrist = positions['wrist']
+    
+    # Index finger pointing down: tip is below MCP (knuckle) - finger is extended downward
+    # The tip should be lower (higher y value) than the MCP
+    index_tip_below_mcp = index_tip.y > index_mcp.y + 0.05
+    
+    # Index finger should be relatively straight/extended (tip far from mcp)
+    index_length = calculate_distance(index_tip, index_mcp)
+    index_extended = index_length > 0.12
+    
+    # Other fingers should be curled (tips closer to palm/mcp than extended)
+    # For curled fingers, tip y should be close to or above pip y (not extended down)
+    middle_tip = positions['middle_tip']
+    middle_mcp = positions['middle_pip']  # Using pip as reference
+    ring_tip = positions['ring_tip']
+    pinky_tip = positions['pinky_tip']
+    
+    # Check other fingers are NOT pointing down (their tips should be above their MCPs or close)
+    middle_curled = middle_tip.y < index_tip.y - 0.05
+    ring_curled = ring_tip.y < index_tip.y - 0.05
+    pinky_curled = pinky_tip.y < index_tip.y - 0.05
+    
+    return index_tip_below_mcp and index_extended and middle_curled and ring_curled and pinky_curled
+
+
+def detect_open_hand_for_swipe(positions):
+    """
+    Detect if hand is open (for swipe gestures).
+    All fingers should be extended.
+    """
+    index_extended = is_finger_extended(positions['index_tip'], positions['index_pip'])
+    middle_extended = is_finger_extended(positions['middle_tip'], positions['middle_pip'])
+    ring_extended = is_finger_extended(positions['ring_tip'], positions['ring_pip'])
+    pinky_extended = is_finger_extended(positions['pinky_tip'], positions['pinky_pip'])
+    
+    return index_extended and middle_extended and ring_extended and pinky_extended
+
+
+def detect_swipe(positions):
+    """
+    Detect swipe up or swipe down gesture based on hand movement.
+    Returns: 'up', 'down', or None
+    """
+    global swipe_history, last_swipe_time
+    
+    current_time = time.time()
+    
+    # Check if hand is open for swiping
+    if not detect_open_hand_for_swipe(positions):
+        swipe_history = []  # Reset history if hand is not open
+        return None
+    
+    # Use wrist position for swipe tracking (more stable)
+    wrist = positions['wrist']
+    current_y = wrist.y
+    current_time_stamp = current_time
+    
+    # Add current position to history
+    swipe_history.append((current_y, current_time_stamp))
+    
+    # Keep only recent history
+    if len(swipe_history) > SWIPE_HISTORY_LENGTH:
+        swipe_history.pop(0)
+    
+    # Need enough history to detect swipe
+    if len(swipe_history) < 5:
+        return None
+    
+    # Check cooldown
+    if current_time - last_swipe_time < SWIPE_COOLDOWN:
+        return None
+    
+    # Calculate vertical movement from oldest to newest position
+    start_y = swipe_history[0][0]
+    end_y = swipe_history[-1][0]
+    delta_y = end_y - start_y
+    
+    # Detect swipe direction
+    if delta_y < -SWIPE_THRESHOLD:  # Hand moved up (y decreases going up)
+        swipe_history = []  # Reset after detecting swipe
+        last_swipe_time = current_time
+        return 'up'
+    elif delta_y > SWIPE_THRESHOLD:  # Hand moved down (y increases going down)
+        swipe_history = []  # Reset after detecting swipe
+        last_swipe_time = current_time
+        return 'down'
+    
+    return None
 
 
 def move_cursor(positions, frame_width, frame_height):
@@ -303,9 +444,9 @@ def main():
     print("=" * 50)
     print("\nGestures:")
     print("  - Claw-Open (spread fingers): Move cursor")
-    print("  - Claw-Closed (bunched fingertips): Click")
-    print("  - Thumbs Up: Scroll up")
-    print("  - Thumbs Down: Scroll down")
+    print("  - Closed Fist: Click")
+    print("  - Point Up (index finger up): Scroll up")
+    print("  - Point Down (index finger down): Scroll down")
     print("\nPress 'q' to quit")
     print("=" * 50)
     
@@ -357,20 +498,20 @@ def main():
                     positions = get_finger_positions(hand_landmarks)
                     
                     # Detect gestures (in priority order)
-                    if detect_claw_closed(positions):
-                        gesture_detected = "CLICK (Claw-Closed)"
+                    if detect_closed_fist(positions):
+                        gesture_detected = "CLICK (Closed Fist)"
                         if perform_click():
                             cv2.circle(frame, (frame_width // 2, frame_height // 2), 
                                       30, (0, 0, 255), -1)
                         is_palm_open = False
                     
-                    elif detect_thumbs_up(positions):
-                        gesture_detected = "SCROLL UP (Thumbs Up)"
+                    elif detect_point_up(positions):
+                        gesture_detected = "SCROLL UP (Point Up)"
                         perform_scroll('up')
                         is_palm_open = False
                     
-                    elif detect_thumbs_down(positions):
-                        gesture_detected = "SCROLL DOWN (Thumbs Down)"
+                    elif detect_point_down(positions):
+                        gesture_detected = "SCROLL DOWN (Point Down)"
                         perform_scroll('down')
                         is_palm_open = False
                     
