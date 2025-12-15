@@ -11,8 +11,12 @@ body {
     padding-bottom: 80px;
 }
 
+body.modal-open {
+    overflow: hidden;
+}
+
 header {
-    background: rgba(255, 255, 255, 0.95);
+    background: white;
     padding: 15px 40px;
     display: flex;
     justify-content: space-between;
@@ -88,7 +92,10 @@ main {
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
+    padding-bottom: 100px;
+    /* Added padding for scrolling */
 }
+
 
 .menu-grid {
     display: grid;
@@ -227,6 +234,7 @@ main {
     justify-content: center;
     align-items: center;
     backdrop-filter: blur(5px);
+    overflow: hidden;
 }
 
 .modal.active {
@@ -250,13 +258,24 @@ main {
     flex-direction: column;
     padding-bottom: 20px;
     overflow: hidden;
+    max-height: 85vh;
 }
 
 .cart-scrollable {
     flex: 1;
-    overflow-y: auto;
+    overflow-y: scroll;
     padding-right: 10px;
     margin-top: 10px;
+    outline: none;
+    min-height: 200px;
+    max-height: 50vh;
+    padding-bottom: 20px;
+    /* Added padding */
+}
+
+
+.cart-scrollable:focus {
+    outline: none;
 }
 
 .cart-footer {
@@ -270,6 +289,7 @@ main {
         transform: translateY(50px);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;
@@ -432,4 +452,84 @@ main {
     padding: 50px 20px;
     color: #999;
     font-size: 1.3rem;
+}
+
+/* Operation Guide Footer */
+
+/* Operation Guide Footer - Dedicated Sidebar */
+#operation-guide {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 20%;
+    height: 100vh;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    /* Start from top */
+    align-items: center;
+    padding-top: 40px;
+    gap: 30px;
+    box-shadow: -5px 0 30px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    border-left: 1px solid #eee;
+}
+
+#operation-guide h2 {
+    font-size: 1.5rem;
+    color: #764ba2;
+    /* Darker purple from theme */
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+    border-bottom: 2px solid #f093fb;
+    /* Accent underline */
+    padding-bottom: 10px;
+    width: 80%;
+}
+
+.guide-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    opacity: 1;
+    transition: transform 0.3s;
+}
+
+
+/* Hover effect removed as requested */
+/* .guide-item:hover { transform: scale(1.05); } */
+
+.guide-item img {
+    width: 120px;
+    /* Further increased size */
+    height: 120px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+.guide-item span {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #667eea;
+    /* Lighter purple-blue from theme */
+    text-align: center;
+}
+
+/* Adjust body padding to accommodate fixed sidebar */
+body {
+    padding-right: 20%;
+    /* Push content to left 80% */
+    padding-bottom: 50px;
+}
+
+/* Adjust floating button to avoid sidebar */
+.checkout-floating-btn {
+    bottom: 30px;
+    right: calc(20% + 30px);
+    /* Positioned relative to the sidebar edge */
 }

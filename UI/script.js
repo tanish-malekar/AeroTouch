@@ -47,6 +47,9 @@ function showCategory(category) {
     
     // Render items
     renderMenu(category);
+    
+    // Scroll to top of page
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // Render Menu Items
@@ -118,13 +121,34 @@ function findItemById(itemId) {
 function openCart() {
     const modal = document.getElementById('cart-modal');
     modal.classList.add('active');
+    document.body.classList.add('modal-open');
     renderCart();
+    
+    // Reset cart scroll position
+    const cartScrollable = document.querySelector('.cart-scrollable');
+    if (cartScrollable) {
+        cartScrollable.scrollTop = 0;
+    }
+    
+    // Add wheel event listener to redirect scrolling to cart
+    modal.addEventListener('wheel', handleCartScroll, { passive: false });
+}
+
+// Handle scroll events when cart is open
+function handleCartScroll(e) {
+    e.preventDefault();
+    const cartScrollable = document.querySelector('.cart-scrollable');
+    if (cartScrollable) {
+        cartScrollable.scrollTop += e.deltaY;
+    }
 }
 
 // Close Cart
 function closeCart() {
     const modal = document.getElementById('cart-modal');
+    modal.removeEventListener('wheel', handleCartScroll);
     modal.classList.remove('active');
+    document.body.classList.remove('modal-open');
 }
 
 // Render Cart
